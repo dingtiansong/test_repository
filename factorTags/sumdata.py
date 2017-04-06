@@ -94,11 +94,12 @@ class MatchFactor():
                     #                     print jn,m
                     right_orig_sentence.append(j)
                     tag_sentence = tag_sentence.replace(j, i)
-                    word_start = self.find_factor_index(j, sentence)
-                    print word_start
-                    data_dict.append((j, word_start))
-        clear_tag_sentence = re.sub('[^DPTRA]', '', tag_sentence)
+                    word_index = self.find_factor_index(j, sentence)
+                    # print word_index
+                    data_dict.append((j, word_index))
+        clear_tag_sentence = re.sub('[^DPTRM]', '', tag_sentence)
         #         print aaa
+        # print clear_tag_sentence
         tag_sentence2 = self.tag_factor(clear_tag_sentence)
         #         dat=self.reverseDict(datadict)
         #                     print tagsentence
@@ -129,11 +130,13 @@ class MatchFactor():
         orig_factor = []
         for i in data_dict:
             if len(i[1]) == 1:
-                temp_dict[str(i[1][0])] = i[0]
+                temp_dict[str(i[1][0][0])] = i[0]
                 #                 print i[0],i[1]
             else:
                 for j in i[1]:
-                    temp_dict[str(j)] = i[0]
+                    # print j[0][0],'@@@@'
+                    temp_dict[str(j[0])] = i[0]
+        # print temp_dict.keys(),'####'
         sortkey = sorted([int(i) for i in temp_dict.keys()])
         for key in sortkey:
             orig_factor.append(temp_dict[str(key)])
@@ -149,17 +152,17 @@ if __name__=='__main__':
     sentence_index, all_redo_data=mf.gether_data(data)
     dict=mf.sentence_order(data,sentence_index)
     total_dict=mf.create_total_Dict(data)
-    # allsentence=[]
-    #
-    # for i in all_redo_data:
-    #     for j in i[1]:
-    #         print j[0],j[1],j[2],j[3]
-    #         print '匹配位置：', dict[str(i[0])].find(j[0])+13, dict[str(i[0])].find(j[0])+len(j[0])+13
-    #         print dict[str(i[0])][j[2]-13:j[3]-13],'&&&&&&&&'
-    #     print '-------------------------------------------'
-    #     print dict[str(i[0])]
-    #     allsentence.append(dict[str(i[0])])
-    #     print '*******************************************'
+    allsentence=[]
+
+    for i in all_redo_data:
+        for j in i[1]:
+            print j[0],j[1],j[2],j[3]
+            print '匹配位置：', dict[str(i[0])].find(j[0])+13, dict[str(i[0])].find(j[0])+len(j[0])+13
+            print dict[str(i[0])][j[2]-13:j[3]-13],'&&&&&&&&'
+        print '-------------------------------------------'
+        print dict[str(i[0])]
+        allsentence.append(dict[str(i[0])])
+        print '*******************************************'
 
 
     test_sentence=u'''湖滨农商行赵磊(1307956997)  14:53:08
@@ -168,6 +171,29 @@ if __name__=='__main__':
 出  AA存单  3M4.95  ！
 出  AA存单  3M4.95  ！
 出  AA存单  3M4.95  ！'''
+
     test_sentence2=u'''玫瑰诚借 1-7天  2亿，求小窗玫瑰玫瑰'''
+
+    test_sentence3=u'''【经理】陈立广（唐山银行）(94696767)  14:32:17
+ 唐山银行（1900亿+城商行）近期业务：
+1.【收】收资金，收资金，收资金，任意期限，价格美丽。欢迎各位领导同事小窗。
+2.【出】各期限高高高价理财（4.6%-4.8%）
+联系人：陈立广，电话：15176574515（微信同号）
+            柳清：15130574269'''
     needtag=['D','P','T','R','M']
-    r1,r2,r3=mf.generate_tag_sentence(total_dict,needtag,test_sentence1)
+
+
+    for i in all_redo_data:
+        test_sentence3= dict[str(i[0])]
+        r1,r2,r3=mf.generate_tag_sentence(total_dict,needtag,test_sentence3)
+        # print r3
+        r4=mf.reverse_dict(r3)
+        # print r4,'4'
+        # print r2,'2'
+        # print r1,'1'
+        sentence_dict={}
+        print len(r1),len(r4)
+    # for i in range(len(r1)):
+    #     print r1[i],r4[i]
+
+
