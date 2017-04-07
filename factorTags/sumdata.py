@@ -65,7 +65,7 @@ class MatchFactor():
         total_dict=pd.Series([D_Dict,P_Dict,T_Dict,R_Dict,M_Dict],index=['D','P','T','R','M'])
         return total_dict
 
-    def find_factor_index(self,factor,sentence):
+    def find_factor_index(self,factor,type,sentence):
         '''
         找出所有句中所有factor的位置
         '''
@@ -73,10 +73,11 @@ class MatchFactor():
         numlist=[]
         while True:
             index=sentence.find(factor, startindex)
-            index2=index+len(factor)
+            # index2=index+len(factor)
             if index == -1:
                 break
-            numlist.append([index,index2])
+            numlist.append([index,type])
+            # print numlist,'numlist$$$$$$$$$$'
             startindex=index+1
         return numlist
 
@@ -94,8 +95,8 @@ class MatchFactor():
                     #                     print jn,m
                     right_orig_sentence.append(j)
                     tag_sentence = tag_sentence.replace(j, i)
-                    word_index = self.find_factor_index(j, sentence)
-                    # print word_index
+                    word_index = self.find_factor_index(j, i, sentence)
+                    # print word_index,'************'
                     data_dict.append((j, word_index))
         clear_tag_sentence = re.sub('[^DPTRM]', '', tag_sentence)
         #         print aaa
@@ -103,7 +104,7 @@ class MatchFactor():
         tag_sentence2 = self.tag_factor(clear_tag_sentence)
         #         dat=self.reverseDict(datadict)
         #                     print tagsentence
-        return tag_sentence2, tag_sentence, data_dict
+        return tag_sentence2, tag_sentence, data_dict,right_orig_sentence
 
     def tag_factor(self, tag_sentence):
         '''
@@ -131,13 +132,14 @@ class MatchFactor():
         for i in data_dict:
             if len(i[1]) == 1:
                 temp_dict[str(i[1][0][0])] = i[0]
-                #                 print i[0],i[1]
+                # print i[0],i[1]
             else:
                 for j in i[1]:
-                    # print j[0][0],'@@@@'
+                    # print j[0],'@@@@'
                     temp_dict[str(j[0])] = i[0]
         # print temp_dict.keys(),'####'
         sortkey = sorted([int(i) for i in temp_dict.keys()])
+        print sortkey,len(sortkey),len(data_dict)
         for key in sortkey:
             orig_factor.append(temp_dict[str(key)])
         return orig_factor
@@ -154,15 +156,15 @@ if __name__=='__main__':
     total_dict=mf.create_total_Dict(data)
     allsentence=[]
 
-    for i in all_redo_data:
-        for j in i[1]:
-            print j[0],j[1],j[2],j[3]
-            print '匹配位置：', dict[str(i[0])].find(j[0])+13, dict[str(i[0])].find(j[0])+len(j[0])+13
-            print dict[str(i[0])][j[2]-13:j[3]-13],'&&&&&&&&'
-        print '-------------------------------------------'
-        print dict[str(i[0])]
-        allsentence.append(dict[str(i[0])])
-        print '*******************************************'
+    # for i in all_redo_data:
+    #     for j in i[1]:
+    #         print j[0],j[1],j[2],j[3]
+    #         print '匹配位置：', dict[str(i[0])].find(j[0])+13, dict[str(i[0])].find(j[0])+len(j[0])+13
+    #         print dict[str(i[0])][j[2]-13:j[3]-13],'&&&&&&&&'
+    #     print '-------------------------------------------'
+    #     print dict[str(i[0])]
+    #     allsentence.append(dict[str(i[0])])
+    #     print '*******************************************'
 
 
     test_sentence=u'''湖滨农商行赵磊(1307956997)  14:53:08
@@ -185,15 +187,28 @@ if __name__=='__main__':
 
     for i in all_redo_data:
         test_sentence3= dict[str(i[0])]
-        r1,r2,r3=mf.generate_tag_sentence(total_dict,needtag,test_sentence3)
+        test_sentence1= test_sentence3.split('\n')[1:]
+        # print test_sentence1,'$$$$$$'
+        tag_sentence2, tag_sentence, data_dict, right_orig_sentence=mf.generate_tag_sentence(total_dict,needtag,test_sentence3)
         # print r3
-        r4=mf.reverse_dict(r3)
-        # print r4,'4'
-        # print r2,'2'
-        # print r1,'1'
+        r4=mf.reverse_dict(data_dict)
         sentence_dict={}
-        print len(r1),len(r4)
-    # for i in range(len(r1)):
-    #     print r1[i],r4[i]
+        print r4
+        print data_dict
+        len1=0
+        for i in data_dict:
+            len1+=len(i[1])
+        print len(r4),len1
+        # if len(r1) != len(r4):
+        #     print r4,'4'
+        #     # print r2,'2'
+        #     print r1,'1'
+        #     print test_sentence3
+        #     for i in range(len(r1)):
+        #         print r1[i],r4[i]
+        #     print '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        qw=[1]
+        for i in qw:
+            print i
 
 
