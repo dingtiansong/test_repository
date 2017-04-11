@@ -11,6 +11,9 @@ import numpy as np
 import pandas as pd
 from numpy import mean
 import re
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 # print(sys.getdefaultencoding())
 
 class MatchFactor():
@@ -81,31 +84,6 @@ class MatchFactor():
             startindex=index+1
         return numlist
 
-    def generate_tag_sentence(self, total_dict, needtag, sentence):
-        '''
-        根据字典将原文转化为标注序列
-        '''
-        data_dict = []
-        tag_sentence = sentence
-        right_orig_sentence = []
-        for i in needtag:
-            for j in total_dict[i]:
-                # jn = j.replace('\n', '')
-                if j in tag_sentence and j != '':
-                    #                     print jn,m
-                    right_orig_sentence.append(j)
-                    tag_sentence = tag_sentence.replace(j, i)
-                    word_index = self.find_factor_index(j, i, sentence)
-                    # print word_index,'************'
-                    data_dict.append((j, word_index))
-        clear_tag_sentence = re.sub('[^DPTRM]', '', tag_sentence)
-        #         print aaa
-        # print clear_tag_sentence
-        tag_sentence2 = self.tag_factor(clear_tag_sentence)
-        #         dat=self.reverseDict(datadict)
-        #                     print tagsentence
-        return tag_sentence2, tag_sentence, data_dict,right_orig_sentence
-
     def tag_factor(self, tag_sentence):
         '''
         对标注后序列进行编号
@@ -128,21 +106,104 @@ class MatchFactor():
 
     def reverse_dict(self, data_dict):
         temp_dict = {}
+        temp_org_dict={}
+        factor_index=[]
+        factor_list=u''
         orig_factor = []
         for i in data_dict:
-            if len(i[1]) == 1:
-                temp_dict[str(i[1][0][0])] = i[0]
-                # print i[0],i[1]
-            else:
-                for j in i[1]:
-                    # print j[0],'@@@@'
-                    temp_dict[str(j[0])] = i[0]
-        # print temp_dict.keys(),'####'
+            for j in i[1]:
+                # print j[0],'@@@@'
+                temp_dict[str(j[0])] = j[1]
+                temp_org_dict[str(j[0])] = i[0]
+
+        # print temp_dict,'####）））））））'
         sortkey = sorted([int(i) for i in temp_dict.keys()])
-        print sortkey,len(sortkey),len(data_dict)
+        # print sortkey
+        # print sortkey, len(sortkey), len(data_dict)
         for key in sortkey:
-            orig_factor.append(temp_dict[str(key)])
-        return orig_factor
+            orig_factor.append(temp_org_dict[str(key)])
+            factor_list=factor_list+temp_dict[str(key)]
+            factor_index.append((key,key+len(temp_org_dict[str(key)])))
+            # print factor_list
+        return orig_factor,factor_list,factor_index
+
+    # def get_period(self,sentence):
+    #     pattern=re.compile(r"(\\d{1,}(\\.\\d{1,})?)")
+    #     factor=pattern.search(sentence)
+
+    def get_price(self,sentence,pre_tag_factor_sentence,pre_data_dict):
+        p_percent = re.compile(r'[0-9]{0,2}\.[0-9]{0,3}%?')
+        # p_bp=re.compile(r'\+[0-9]*bp',re.I)
+        p_num=re.compile(r'[0-9]{0,2}\.[0-9]{0,3}')
+        result=p_percent.findall(sentence)
+        # print result,'price@@@@@@@@@@@@@@@@@@@@@'
+        if result:
+            for i in result:
+                word_index = self.find_factor_index(i,'R', sentence)
+                pre_tag_factor_sentence.append(('R',word_index))
+                pre_data_dict.append((i,word_index))
+        # print pre_data_dict
+        return pre_tag_factor_sentence,pre_data_dict
+
+    def get_amount(self,sentence,pre_tag_factor_sentence,pre_data_dict):
+        temp_dict=pre_data_dict
+        temp_tag_sentence=pre_tag_factor_sentence
+        # p_amount=re.compile(r'[0-9]\.?[0-9]*[个千]?[ewEW万亿]')
+        p_amount=re.compile(ur'[0-9]\.?[0-9]*[个千]?[ewEW万亿]')
+        # p_amount2=re.compile(r'[一二三四五六七八九两]')
+        result=p_amount.findall(sentence)
+        # print result, 'amount**********************'
+        if result:
+            for i in result:
+                word_index = self.find_factor_index(i,'A', sentence)
+                temp_tag_sentence.append(('A',word_index))
+                temp_dict.append((i,word_index))
+        # print temp_dict
+        return temp_tag_sentence,temp_dict
+
+    def generate_tag_sentence(self, total_dict, needtag, sentence):
+        '''
+        根据字典将原文转化为标注序列
+        '''
+        pre_data_dict = []
+        tag_sentence = sentence
+        right_orig_sentence = []
+        pre_tag_factor_sentence=[]
+        for i in needtag:
+            for j in total_dict[i]:
+                # jn = j.replace('\n', '')
+                if j in tag_sentence and j != '':
+                    #                     print jn,m
+                    right_orig_sentence.append(j)
+                    tag_sentence = tag_sentence.replace(j, i)
+                    word_index = self.find_factor_index(j, i, sentence)
+                    pre_tag_factor_sentence.append((i,word_index))
+                    # print word_index,'************'
+                    pre_data_dict.append((j, word_index))
+        # print pre_tag_factor_sentence
+        r1,r2=self.get_amount(sentence, pre_tag_factor_sentence, pre_data_dict)
+        # print sentence
+        # print r1,'金额'
+        r3,r4=self.get_price(sentence,r1,r2)
+        # print r3,'利率'
+        # print r4,'dict###'
+        # clear_tag_sentence = re.sub('[^DPTRM]', '', tag_sentence)##替换查找
+        # print [sentence]
+        #         print aaa
+        # print clear_tag_sentence
+        # tag_sentence2 = self.tag_factor(clear_tag_sentence)##del
+        orig_factor, factor_list, sortkey=self.reverse_dict(r4)
+
+        final_tag_sentence=self.tag_factor(factor_list)
+        # print final_tag_sentence,'``````'
+        # print orig_factor
+        # print sortkey
+        # for i in sortkey:
+        #     print i,
+        #     print sentence[i[0]:i[1]],
+        #         dat=self.reverseDict(datadict)
+        #                     print tagsentence
+        return final_tag_sentence, orig_factor, factor_list, sortkey
 
 
 
@@ -174,41 +235,50 @@ if __name__=='__main__':
 出  AA存单  3M4.95  ！
 出  AA存单  3M4.95  ！'''
 
-    test_sentence2=u'''玫瑰诚借 1-7天  2亿，求小窗玫瑰玫瑰'''
+    test_sentence2='''玫瑰诚借 1-7天  2亿，求小窗玫瑰玫瑰'''
 
-    test_sentence3=u'''【经理】陈立广（唐山银行）(94696767)  14:32:17
+    test_sentence3='''【经理】陈立广（唐山银行）(94696767)  14:32:17
  唐山银行（1900亿+城商行）近期业务：
 1.【收】收资金，收资金，收资金，任意期限，价格美丽。欢迎各位领导同事小窗。
-2.【出】各期限高高高价理财（4.6%-4.8%）
+2.【出】各期限高高高价理财（4.6%-4.8%）,4.6%-4.8%,3w,7.2个亿,4千万,5亿,1亿
 联系人：陈立广，电话：15176574515（微信同号）
             柳清：15130574269'''
-    needtag=['D','P','T','R','M']
+    test_sentence4=' 3.24借7天1.2亿，押利率'
+    needtag=['D','P','T']
 
 
     for i in all_redo_data:
-        test_sentence3= dict[str(i[0])]
-        test_sentence1= test_sentence3.split('\n')[1:]
-        # print test_sentence1,'$$$$$$'
-        tag_sentence2, tag_sentence, data_dict, right_orig_sentence=mf.generate_tag_sentence(total_dict,needtag,test_sentence3)
-        # print r3
-        r4=mf.reverse_dict(data_dict)
-        sentence_dict={}
-        print r4
-        print data_dict
-        len1=0
-        for i in data_dict:
-            len1+=len(i[1])
-        print len(r4),len1
-        # if len(r1) != len(r4):
-        #     print r4,'4'
-        #     # print r2,'2'
-        #     print r1,'1'
-        #     print test_sentence3
-        #     for i in range(len(r1)):
-        #         print r1[i],r4[i]
-        #     print '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-        qw=[1]
-        for i in qw:
-            print i
+        sentence3= dict[str(i[0])]
+        sentence1= '\n'.join(sentence3.split('\n')[1:])
+        sentence2 = sentence3.split('\n')[0]
+        print sentence2 ,'^^^^^^^^^^^^^^^^^^'
+        print sentence1
+        final_tag_sentence, orig_factor, factor_list, sortkey\
+            =mf.generate_tag_sentence(total_dict,needtag,sentence1)
+        print final_tag_sentence
+        print orig_factor
+        print factor_list
+        print  sortkey
+        print '-------------------------------------------------------------------------------------'
 
+    # for i in all_redo_data:
+    #     test_sentence= dict[str(i[0])]
+    #     price_regx = re.compile(r'[0-9]{0,2}\.[0-9]{0,3}%')
+    #     period_regx = re.compile(r'[0-9]\.?[0-9]*[个千]?[ewEW万亿]')
+    #     print 'price match:', price_regx.findall(test_sentence)
+    #     print 'period match:', period_regx.findall(test_sentence)
+    #     print test_sentence
 
+    # price_regx = re.compile(r'[0-9]{0,2}\.[0-9]{0,3}%')
+    # amount_regx=re.compile(r'[0-9]\.?[0-9]*[千个]?[weWE万亿]')
+    # temp_regx=re.compile(r'亿')
+    # print temp_regx.findall(test_sentence3)
+    # zz= amount_regx.findall(test_sentence3)
+    # print price_regx.findall(test_sentence3)
+    # print zz
+    # print mt.endpos
+    # import sys
+    # print sys.getdefaultencoding()
+    # for i in zz:
+    #     print test_sentence3.find(i),test_sentence3.find(i)+len(i)
+    #     print test_sentence3[test_sentence3.find(i):test_sentence3.find(i)+len(i)]
