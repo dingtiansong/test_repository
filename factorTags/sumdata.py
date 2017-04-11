@@ -10,6 +10,12 @@ import chardet
 import numpy as np
 import pandas as pd
 from numpy import mean
+from tagFactor import TagFactor
+from sklearn import metrics
+# from sklearn.metrics import confusion_matrix
+from numpy import mean
+from sklearn.cross_validation import cross_val_score
+from sklearn.naive_bayes import GaussianNB
 import re
 import sys
 reload(sys)
@@ -205,18 +211,25 @@ class MatchFactor():
         #                     print tagsentence
         return final_tag_sentence, orig_factor, factor_list, sortkey
 
-
-
 if __name__=='__main__':
     newdatapath2 = 'D:\\work\\tags\\data\\newdata3.pkl'
     with open(newdatapath2, 'rb') as f:
         data = pickle.load(f)
+    dictpath='D:\\work\\tags\\data\\worddict.pkl'
+    with open(dictpath, 'rb') as f:
+        word_dict = pickle.load(f)
+    datafpath='D:\\work\\tags\\data\\datafpath.pkl'
+    with open(datafpath, 'rb') as f:
+        ff = pickle.load(f)
+    dataf=ff[0]
+    y=ff[1]
     mf=MatchFactor()
+    tf=TagFactor()
+
     sentence_index, all_redo_data=mf.gether_data(data)
     dict=mf.sentence_order(data,sentence_index)
     total_dict=mf.create_total_Dict(data)
     allsentence=[]
-
     # for i in all_redo_data:
     #     for j in i[1]:
     #         print j[0],j[1],j[2],j[3]
@@ -226,27 +239,10 @@ if __name__=='__main__':
     #     print dict[str(i[0])]
     #     allsentence.append(dict[str(i[0])])
     #     print '*******************************************'
+    gnb = GaussianNB()
+    gnbclf = gnb.fit(dataf, y)
 
-
-    test_sentence=u'''湖滨农商行赵磊(1307956997)  14:53:08
- 3.24借七天1亿，押利率'''
-    test_sentence1=u'''
-出  AA存单  3M4.95  ！
-出  AA存单  3M4.95  ！
-出  AA存单  3M4.95  ！'''
-
-    test_sentence2='''玫瑰诚借 1-7天  2亿，求小窗玫瑰玫瑰'''
-
-    test_sentence3='''【经理】陈立广（唐山银行）(94696767)  14:32:17
- 唐山银行（1900亿+城商行）近期业务：
-1.【收】收资金，收资金，收资金，任意期限，价格美丽。欢迎各位领导同事小窗。
-2.【出】各期限高高高价理财（4.6%-4.8%）,4.6%-4.8%,3w,7.2个亿,4千万,5亿,1亿
-联系人：陈立广，电话：15176574515（微信同号）
-            柳清：15130574269'''
-    test_sentence4=' 3.24借7天1.2亿，押利率'
     needtag=['D','P','T']
-
-
     for i in all_redo_data:
         sentence3= dict[str(i[0])]
         sentence1= '\n'.join(sentence3.split('\n')[1:])
@@ -258,27 +254,13 @@ if __name__=='__main__':
         print final_tag_sentence
         print orig_factor
         print factor_list
-        print  sortkey
-        print '-------------------------------------------------------------------------------------'
-
-    # for i in all_redo_data:
-    #     test_sentence= dict[str(i[0])]
-    #     price_regx = re.compile(r'[0-9]{0,2}\.[0-9]{0,3}%')
-    #     period_regx = re.compile(r'[0-9]\.?[0-9]*[个千]?[ewEW万亿]')
-    #     print 'price match:', price_regx.findall(test_sentence)
-    #     print 'period match:', period_regx.findall(test_sentence)
-    #     print test_sentence
-
-    # price_regx = re.compile(r'[0-9]{0,2}\.[0-9]{0,3}%')
-    # amount_regx=re.compile(r'[0-9]\.?[0-9]*[千个]?[weWE万亿]')
-    # temp_regx=re.compile(r'亿')
-    # print temp_regx.findall(test_sentence3)
-    # zz= amount_regx.findall(test_sentence3)
-    # print price_regx.findall(test_sentence3)
-    # print zz
-    # print mt.endpos
-    # import sys
-    # print sys.getdefaultencoding()
-    # for i in zz:
-    #     print test_sentence3.find(i),test_sentence3.find(i)+len(i)
-    #     print test_sentence3[test_sentence3.find(i):test_sentence3.find(i)+len(i)]
+        for z in range(len(sortkey)):
+            word_start_index=sortkey[z][0]
+            word_end_index=sortkey[z][1]
+            adjust_index=0
+            meta_word=tf.create_word_list(sentence1,word_start_index,word_end_index,adjust_index)
+            vector = tf.bag_of_words_2_vec(word_dict, meta_word)
+            # print z,meta_word
+            print sortkey[z],sentence1[sortkey[z][0]:sortkey[z][1]], \
+                 factor_list[z],gnbclf.predict(vector)
+        print '----------------------------------------------------------------'
