@@ -20,9 +20,12 @@ import re
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
-# print(sys.getdefaultencoding())
+# print(sys.getdeRfaultencoding())
 
 class MatchFactor():
+    """
+    """
+    tf=TagFactor()
 
     def len_sort(self,dictList):
         dictList.sort(lambda x,y :cmp(len(x),len(y)),reverse=True)
@@ -119,6 +122,7 @@ class MatchFactor():
         for i in data_dict:
             for j in i[1]:
                 # print j[0],'@@@@'
+
                 temp_dict[str(j[0])] = j[1]
                 temp_org_dict[str(j[0])] = i[0]
 
@@ -138,15 +142,29 @@ class MatchFactor():
     #     factor=pattern.search(sentence)
 
     def get_price(self,sentence,pre_tag_factor_sentence,pre_data_dict):
-        p_percent = re.compile(r'[0-9]{0,2}\.[0-9]{0,3}%?')
+        p_percent = re.compile(r'[0-9]{0,2}\.[0-9]{1,3}%')
         # p_bp=re.compile(r'\+[0-9]*bp',re.I)
-        p_num=re.compile(r'[0-9]{0,2}\.[0-9]{0,3}')
+        p_num=re.compile(r'[0-9]{0,2}\.[0-9]{1,3}')
         result=p_percent.findall(sentence)
         # print result,'price@@@@@@@@@@@@@@@@@@@@@'
         if result:
             for i in result:
                 word_index = self.find_factor_index(i,'R', sentence)
                 pre_tag_factor_sentence.append(('R',word_index))
+                pre_data_dict.append((i,word_index))
+        # print pre_data_dict
+        return pre_tag_factor_sentence,pre_data_dict
+
+    def get_mix(self,sentence,pre_tag_factor_sentence,pre_data_dict):
+        # p_percent = re.compile(r'[0-9]{0,2}\.[0-9]{1,3}%?')
+        # p_bp=re.compile(r'\+[0-9]*bp',re.I)
+        p_num=re.compile(r'([0-9]{0,4}\.[0-9]{1,4})[^%0-9]')
+        result=p_num.findall(sentence)
+        # print result,'price@@@@@@@@@@@@@@@@@@@@@'
+        if result:
+            for i in result:
+                word_index = self.find_factor_index(i,'B', sentence)
+                pre_tag_factor_sentence.append(('B',word_index))
                 pre_data_dict.append((i,word_index))
         # print pre_data_dict
         return pre_tag_factor_sentence,pre_data_dict
@@ -167,7 +185,25 @@ class MatchFactor():
         # print temp_dict
         return temp_tag_sentence,temp_dict
 
+    def get_period(self,sentence,pre_tag_factor_sentence,pre_data_dict):
+        temp_dict=pre_data_dict
+        temp_tag_sentence=pre_tag_factor_sentence
+        # p_amount=re.compile(r'[0-9]\.?[0-9]*[个千]?[ewEW万亿]')
+        p_period=re.compile(ur'[0-9]{1,3}个?[DMYdmy天月周日]')
+        # p_amount2=re.compile(r'[一二三四五六七八九两]')
+        result=p_period.findall(sentence)
+        # print result, 'amount**********************'
+        if result:
+            for i in result:
+                word_index = self.find_factor_index(i,'T', sentence)
+                temp_tag_sentence.append(('T', word_index))
+                temp_dict.append((i,word_index))
+        # print temp_dict
+        return temp_tag_sentence,temp_dict
+
     def generate_tag_sentence(self, total_dict, needtag, sentence):
+        '''TODO:增加停用词'''
+
         '''
         根据字典将原文转化为标注序列
         '''
@@ -187,10 +223,15 @@ class MatchFactor():
                     # print word_index,'************'
                     pre_data_dict.append((j, word_index))
         # print pre_tag_factor_sentence
-        r1,r2=self.get_amount(sentence, pre_tag_factor_sentence, pre_data_dict)
+        add_B, add_B_dict = self.get_price(sentence, pre_tag_factor_sentence, pre_data_dict)
+        r1, r2=self.get_mix(sentence,add_B, add_B_dict)
+
+        add_T,add_T_dict=self.get_period(sentence,r1, r2)
+        r3, r4=self.get_amount(sentence,  add_T,add_T_dict)
+
         # print sentence
         # print r1,'金额'
-        r3,r4=self.get_price(sentence,r1,r2)
+
         # print r3,'利率'
         # print r4,'dict###'
         # clear_tag_sentence = re.sub('[^DPTRM]', '', tag_sentence)##替换查找
@@ -210,6 +251,8 @@ class MatchFactor():
         #         dat=self.reverseDict(datadict)
         #                     print tagsentence
         return final_tag_sentence, orig_factor, factor_list, sortkey
+
+
 
 if __name__=='__main__':
     newdatapath2 = 'D:\\work\\tags\\data\\newdata3.pkl'
@@ -242,15 +285,37 @@ if __name__=='__main__':
     gnb = GaussianNB()
     gnbclf = gnb.fit(dataf, y)
 
-    needtag=['D','P','T']
-    for i in all_redo_data:
-        sentence3= dict[str(i[0])]
-        sentence1= '\n'.join(sentence3.split('\n')[1:])
-        sentence2 = sentence3.split('\n')[0]
-        print sentence2 ,'^^^^^^^^^^^^^^^^^^'
-        print sentence1
+    # needtag=['D','P','T']
+    # for i in all_redo_data:
+    #     sentence3= dict[str(i[0])]
+    #     sentence1= '\n'.join(sentence3.split('\n')[1:])
+    #     sentence2 = sentence3.split('\n')[0]
+    #     print sentence2 ,'^^^^^^^^^^^^^^^^^^'
+    #     print sentence1
+    #     final_tag_sentence, orig_factor, factor_list, sortkey\
+    #         =mf.generate_tag_sentence(total_dict,needtag,sentence1)
+    #     print final_tag_sentence
+    #     print orig_factor
+    #     print factor_list
+    #     for z in range(len(sortkey)):
+    #         word_start_index=sortkey[z][0]
+    #         word_end_index=sortkey[z][1]
+    #         adjust_index=0
+    #         meta_word=tf.create_word_list(sentence1,word_start_index,word_end_index,adjust_index)
+    #         vector = tf.bag_of_words_2_vec(word_dict, meta_word)
+    #         # print z,meta_word
+    #         print sortkey[z],sentence1[sortkey[z][0]:sortkey[z][1]], \
+    #              factor_list[z],gnbclf.predict(vector)
+    #     print '----------------------------------------------------------------'
+
+    with open('D:\\work\\tags\\data\\tagtestdata.txt') as f:
+        test_data=f.readlines()
+    needtag=['D','P']
+    for sen in test_data:
+        sentence1=sen.decode('utf-8')
         final_tag_sentence, orig_factor, factor_list, sortkey\
             =mf.generate_tag_sentence(total_dict,needtag,sentence1)
+        print sentence1
         print final_tag_sentence
         print orig_factor
         print factor_list
