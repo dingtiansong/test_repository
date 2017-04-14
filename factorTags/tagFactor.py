@@ -19,7 +19,7 @@ class TagFactor():
 
 
 
-    def create_word_list(self,sentence,word_start_index,word_end_index,adjust_index=13):
+    def create_word_list(self,sentence,word_start_index,word_end_index,adjust_index):
 
         if word_start_index==adjust_index:
             front_1_word='*'
@@ -52,7 +52,7 @@ class TagFactor():
         data_set = []
         for meta_data in data:
             sentence, word_start_index, word_end_index=meta_data[2],meta_data[4],meta_data[5]
-            meta_word_list=self.create_word_list(sentence,word_start_index,word_end_index)
+            meta_word_list=self.create_word_list(sentence,word_start_index,word_end_index,adjust_index=13)
             data_set.append(meta_word_list)
         return data_set
 
@@ -89,42 +89,6 @@ class TagFactor():
         precision,recall,F1_score=cla_result[179:183],cla_result[189:193],cla_result[199:203]
         return [precision,recall,F1_score]
 
-    def find_all_factorindex(self,factor,sentence):
-        '''
-        找出所有句中所有factor的位置
-        '''
-        startindex=0
-        numlist=[]
-        while True:
-            index=sentence.find(factor,startindex)
-            if index == -1:
-                break
-            numlist.append(index)
-            startindex=index+1
-        return numlist
-    def generateTagSentence(self,vdict,needtag,sentence):
-        '''
-        根据字典将原文转化为标注序列
-        '''
-        datadict=[]
-        tagsentence=sentence
-        rightOrigSentence=[]
-#         m=0
-        for i in needtag:
-            for j in vdict[i]:
-                jn=j.replace('\n','')
-                if jn in tagsentence and jn != '':
-#                     print jn,m
-                    rightOrigSentence.append(jn)
-                    tagsentence=tagsentence.replace(jn,i)
-                    z=self.find_all_factorindex(jn, sentence)
-                    datadict.append((jn,z))
-        aaa=re.sub('[^DPTRA]','',tagsentence)
-#         print aaa
-        tagsentence2=self.tagFactor(aaa)
-#         dat=self.reverseDict(datadict)
-#                     print tagsentence
-        return tagsentence2,rightOrigSentence,datadict##,dat
 
     # def predict_tags(self,sentence,tags):
 
@@ -133,6 +97,8 @@ if __name__=='__main__':
     path = 'D:\\work\\tags\\data\\learning_quote_origin_element2.pkl'
     newdatapath2 = 'D:\\work\\tags\\data\\newdata2.pkl'
     newdatapath3 = 'D:\\work\\tags\\data\\newdata3.pkl'
+    dictpath='D:\\work\\tags\\data\\worddict.pkl'
+    datafpath='D:\\work\\tags\\data\\datafpath.pkl'
     with open(newdatapath3, 'rb') as f:
         data = pickle.load(f)
     # newdata=[]
@@ -144,9 +110,12 @@ if __name__=='__main__':
     tf=TagFactor()
     data_set=tf.create_data_set(data)
     word_dict=tf.create_word_dict(data_set)
+    # f1 = file(dictpath, 'wb')
+    # pickle.dump(word_dict, f1, True)
     # print tf.bag_of_word_2_vec(word_dict,data_set[1])
     # print data_set[1]
     dataf=tf.create_data_matrix(data_set,word_dict)
+
     with open('C:\\Users\\John64pc\\Desktop\\work\\data.txt','rb') as f:
         textdata=f.readlines()
     tag_y=[]
@@ -159,20 +128,23 @@ if __name__=='__main__':
             y.append(0)
         else:
             y.append(int(tag_y[i]))
+    ff=[dataf,y]
+    # f2 = file(datafpath, 'wb')
+    # pickle.dump(ff, f2, True)
  ######################################naive_bayes##############################
 
-    gnb = GaussianNB()
-    gnbclf = gnb.fit(dataf, y)
-    print 'naive_bayes confusion matrix ：'
-    # print confusion_matrix(gnbclf.predict(dataf),y)
-    cla_result = metrics.classification_report(y, gnbclf.predict(dataf))
-    # cross-validation
-    print cla_result
-    print '\n cross_validation scores:'
-    scores = cross_val_score(gnbclf,dataf, y, cv=4)
-    print scores ,mean(scores)
-    result=tf.print_result(dataf,y)
-    print result
+    # gnb = GaussianNB()
+    # gnbclf = gnb.fit(dataf, y)
+    # print 'naive_bayes confusion matrix ：'
+    # # print confusion_matrix(gnbclf.predict(dataf),y)
+    # cla_result = metrics.classification_report(y, gnbclf.predict(dataf))
+    # # cross-validation
+    # print cla_result
+    # print '\n cross_validation scores:'
+    # scores = cross_val_score(gnbclf,dataf, y, cv=4)
+    # print scores ,mean(scores)
+    # result=tf.print_result(dataf,y)
+    # print result
 ########################################################################
 
 
